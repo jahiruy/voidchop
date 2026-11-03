@@ -4,3 +4,21 @@
 }
 .pulse-edge { animation: soft-pulse 4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .pulse-edge { animation: none; } }
+
+/* Beat-locked alien glow. App rAF sets --vc-phase (0..1 within beat) and --vc-playing (0|1). */
+:root { --vc-phase: 0; --vc-playing: 0; }
+.glow-layer {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  --vc-beat: calc(1 - var(--vc-phase));
+  --vc-strength: calc(0.12 + var(--vc-playing) * 0.38 * var(--vc-beat));
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(60, 220, 255, var(--vc-strength)), transparent 60%),
+    radial-gradient(ellipse at 70% 80%, rgba(140, 90, 255, var(--vc-strength)), transparent 60%);
+  mix-blend-mode: screen;
+  animation: vc-idle-breath 6s ease-in-out infinite;
+}
+@keyframes vc-idle-breath { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .glow-layer { animation: none; } }

@@ -3,6 +3,8 @@ const REGIONS = [
   ['wave', 'Waveform', 'main'],
   ['pads', 'Drum Pads', 'main'],
   ['sub', 'Sub Bass', 'main'],
+  ['transport', 'Transport', 'main'],
+  ['sessionStrip', 'Session', 'main'],
   ['export', 'Export', 'side'],
 ];
 
@@ -29,7 +31,10 @@ export function mountShell(root) {
     refs[key] = mount;
     (col === 'side' ? side : main).appendChild(panel);
   }
-  shell.append(header, main, side);
+  const glow = document.createElement('div');
+  glow.className = 'glow-layer';
+  glow.setAttribute('aria-hidden', 'true');
+  shell.append(glow, header, main, side);
   root.appendChild(shell);
-  return { refs };
+  return { refs, glow };
 }
