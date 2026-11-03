@@ -1,1 +1,3 @@
-document.getElementById('app').innerHTML = '<p class="boot">VOIDCHOP</p>';
+import { mountShell } from './ui/theme-shell.js';
+
+mountShell(document.getElementById('app'));
