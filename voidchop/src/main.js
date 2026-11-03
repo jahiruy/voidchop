@@ -1,3 +1,3 @@
-import { mountShell } from './ui/theme-shell.js';
+import { bootApp } from './app.js';
 
-mountShell(document.getElementById('app'));
+bootApp(document.getElementById('app'));
