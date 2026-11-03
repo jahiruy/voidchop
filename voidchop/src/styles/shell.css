@@ -1,0 +1,4 @@
+:root { color-scheme: dark; }
+html, body { margin: 0; height: 100%; background: #07070a; color: #e6e6f0; font-family: system-ui, sans-serif; }
+#app { min-height: 100%; }
+.boot { margin: 0; padding: 2rem; letter-spacing: 0.3em; font-weight: 700; }
