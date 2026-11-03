@@ -32,7 +32,7 @@ describe('DrumKit', () => {
     const kit = new DrumKit();
     expect(kit.getBuffer('kick')).toBeNull();
     await kit.loadDefaults();
-    expect(fetch).toHaveBeenCalledWith('/kits/909/kick.wav');
+    expect(fetch).toHaveBeenCalledWith('/voidchop/kits/909/kick.wav');
     expect(kit.getBuffer('snare').tag).toBe(2);
     expect(kit.getBuffer('cymbal').tag).toBe(4);
   });
