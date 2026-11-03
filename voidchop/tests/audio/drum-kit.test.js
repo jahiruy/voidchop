@@ -92,4 +92,19 @@ describe('DrumKit', () => {
       FakeCtx.prototype.decodeAudioData = ctxDecode;
     }
   });
+  it('one missing stock sample still loads the rest and applies swaps', async () => {
+    globalThis.fetch = vi.fn(async (url) => {
+      if (url.endsWith('snare.wav')) return { ok: false, status: 404, arrayBuffer: async () => ab(0) };
+      const pad = url.match(/(\w+)\.wav$/)[1];
+      return { ok: true, arrayBuffer: async () => ab(PADS.indexOf(pad) + 1) };
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ clap: btoa(String.fromCharCode(88)) }));
+    const kit = new DrumKit();
+    await kit.loadDefaults();
+    expect(kit.getBuffer('kick').tag).toBe(1);
+    expect(kit.getBuffer('snare')).toBeNull();
+    expect(kit.getBuffer('clap').tag).toBe(88);
+    expect(kit.getBuffer('cymbal').tag).toBe(4);
+  });
+
 });

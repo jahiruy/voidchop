@@ -4,7 +4,8 @@ import { decodeSample } from './sample-buffer.js';
 export const PADS = ['kick', 'snare', 'clap', 'cymbal'];
 export const STORAGE_KEY = 'voidchop.kit.swaps';
 const MAX_PERSIST_BYTES = 1.5 * 1024 * 1024;
-const BASE_URL = '/kits/909/';
+const BASE = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
+const BASE_URL = `${BASE}kits/909/`;
 
 function toBase64(ab) {
   const u = new Uint8Array(ab);
@@ -30,7 +31,7 @@ export class DrumKit {
   }
 
   async loadDefaults() {
-    await Promise.all(PADS.map(async (pad) => {
+    await Promise.allSettled(PADS.map(async (pad) => {
       const res = await fetch(`${BASE_URL}${pad}.wav`);
       if (!res.ok) throw new Error(`Failed to load ${pad}.wav`);
       this.buffers[pad] = await decodeSample(await res.arrayBuffer());
