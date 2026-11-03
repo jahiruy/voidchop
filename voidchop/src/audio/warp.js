@@ -15,3 +15,11 @@ export function segmentPlaybackRate(markerA, markerB, bpm) {
   const timelineSec = beatDt * (60 / bpm);
   return bufDt / timelineSec;
 }
+
+/**
+ * Markers are stored in beats, so a BPM change requires no marker rewrite.
+ * Identity (returns a shallow copy).
+ */
+export function markersForBpmChange(markers) {
+  return markers.map((m) => ({ ...m }));
+}
