@@ -20,3 +20,8 @@ html, body { margin: 0; height: 100%; background: radial-gradient(ellipse at top
 @media (max-width: 800px) {
   .vc-shell { grid-template-columns: 1fr; grid-template-areas: "head" "main" "side"; }
 }
+
+.vc-drop-msg { margin: 0.5rem 0 0; font-size: 0.8rem; color: #ff9db8; text-shadow: 0 0 6px rgba(255, 80, 140, 0.35); }
+.vc-hint { margin: 0.4rem 0 0; font-size: 0.75rem; color: var(--cyan); opacity: 0.8; }
+.vc-audio-banner { position: fixed; top: 0.75rem; left: 50%; transform: translateX(-50%); z-index: 10; padding: 0.5rem 1.25rem; border-radius: 999px; border: 1px solid var(--edge); background: var(--panel); color: var(--text); letter-spacing: 0.15em; text-transform: uppercase; font-size: 0.7rem; cursor: pointer; box-shadow: 0 0 14px rgba(140, 90, 255, 0.45); backdrop-filter: blur(10px); }
+.vc-audio-banner[hidden], .vc-drop-msg[hidden], .vc-hint[hidden] { display: none; }

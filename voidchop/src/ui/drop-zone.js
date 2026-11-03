@@ -7,12 +7,21 @@ export function isSupportedFile(file) {
   return !!file && (EXT.test(file.name || '') || MIME.test(file.type || ''));
 }
 
-export function mountDropZone(el, { onFile }) {
+export function mountDropZone(el, { onFile, onUnsupported } = {}) {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.wav,.aif,.aiff,.mp3,audio/wav,audio/aiff,audio/mpeg';
   input.hidden = true;
-  el.appendChild(input);
+  const msg = document.createElement('p');
+  msg.className = 'vc-drop-msg';
+  msg.setAttribute('role', 'status');
+  msg.hidden = true;
+  el.append(input, msg);
+  const setMessage = (text, kind = 'error') => {
+    msg.textContent = text || '';
+    msg.hidden = !text;
+    msg.dataset.kind = kind;
+  };
 
   let unlocked = false;
   const gesture = () => {
@@ -22,7 +31,10 @@ export function mountDropZone(el, { onFile }) {
   };
   const handle = (files) => {
     const f = files && files[0];
-    if (isSupportedFile(f)) onFile(f);
+    if (!f) return;
+    if (isSupportedFile(f)) { setMessage(''); onFile?.(f); return; }
+    setMessage(`Unsupported file "${f.name || 'unknown'}" — drop a WAV, AIFF, or MP3.`);
+    onUnsupported?.(f);
   };
 
   el.addEventListener('click', (e) => {
@@ -38,5 +50,5 @@ export function mountDropZone(el, { onFile }) {
     gesture();
     handle(e.dataTransfer && e.dataTransfer.files);
   });
-  return { input };
+  return { input, setMessage };
 }

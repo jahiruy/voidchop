@@ -18,8 +18,27 @@ export function buildSlices(buffer, markers) {
   return pts.map((startSec, i) => ({ buffer, startSec, endSec: i + 1 < pts.length ? pts[i + 1] : dur }));
 }
 
+export const CHOP_HINT = 'Few transients found — try raising Sensitivity to chop more slices.';
+
 export function bootApp(root) {
   const { refs } = mountShell(root);
+  const banner = document.createElement('button');
+  banner.type = 'button';
+  banner.className = 'vc-audio-banner';
+  banner.textContent = 'Tap to enable audio';
+  banner.hidden = true;
+  root.prepend(banner);
+  const syncBanner = () => {
+    let s;
+    try { s = getAudioContext().state; } catch { s = 'running'; }
+    banner.hidden = s !== 'suspended';
+  };
+  const unlock = () => unlockAudio().catch(() => {}).finally(syncBanner);
+  banner.addEventListener('click', unlock);
+  const chopHint = document.createElement('p');
+  chopHint.className = 'vc-hint';
+  chopHint.textContent = CHOP_HINT;
+  chopHint.hidden = true;
   const state = { buffer: null, markers: [0] };
 
   const kit = new DrumKit();
@@ -30,19 +49,25 @@ export function bootApp(root) {
   const refresh = () => exportPanel?.refresh?.();
 
   const waveform = mountWaveform(refs.wave, {
-    onMarkersChange: (m) => { state.markers = m; refresh(); },
+    onMarkersChange: (m) => {
+      state.markers = m;
+      chopHint.hidden = !state.buffer || buildSlices(state.buffer, m).length > 1;
+      refresh();
+    },
   });
+  refs.wave.appendChild(chopHint);
 
-  mountDropZone(refs.drop, {
+  const drop = mountDropZone(refs.drop, {
     onFile: async (file) => {
       try {
-        await unlockAudio();
+        await unlock();
         state.buffer = await decodeSample(await file.arrayBuffer());
         state.markers = [0];
         waveform.setBuffer(state.buffer);
         refresh();
       } catch (err) {
         console.error('VOIDCHOP: failed to load sample', err);
+        drop.setMessage(`Couldn't read that file — try another or drop it again.`);
       }
     },
   });
@@ -72,6 +97,8 @@ export function bootApp(root) {
   refs.sub.append(knobs, keys);
   mountKeyboard(keys, moog);
 
-  root.addEventListener('pointerdown', () => { unlockAudio().catch(() => {}); }, { once: true });
-  return { state, kit, moog, waveform, exportPanel };
+  root.addEventListener('pointerdown', unlock, { once: true });
+  syncBanner();
+  try { getAudioContext().addEventListener?.('statechange', syncBanner); } catch { /* no audio */ }
+  return { banner, chopHint, drop, state, kit, moog, waveform, exportPanel };
 }
