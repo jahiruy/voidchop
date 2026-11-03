@@ -25,3 +25,21 @@ html, body { margin: 0; height: 100%; background: radial-gradient(ellipse at top
 .vc-hint { margin: 0.4rem 0 0; font-size: 0.75rem; color: var(--cyan); opacity: 0.8; }
 .vc-audio-banner { position: fixed; top: 0.75rem; left: 50%; transform: translateX(-50%); z-index: 10; padding: 0.5rem 1.25rem; border-radius: 999px; border: 1px solid var(--edge); background: var(--panel); color: var(--text); letter-spacing: 0.15em; text-transform: uppercase; font-size: 0.7rem; cursor: pointer; box-shadow: 0 0 14px rgba(140, 90, 255, 0.45); backdrop-filter: blur(10px); }
 .vc-audio-banner[hidden], .vc-drop-msg[hidden], .vc-hint[hidden] { display: none; }
+
+/* Transport + session strip */
+.transport { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.transport button { background: transparent; color: var(--text); border: 1px solid var(--edge); border-radius: 8px; padding: 0.3rem 0.8rem; cursor: pointer; }
+.transport button.active { border-color: var(--cyan); box-shadow: 0 0 8px rgba(60, 220, 255, 0.5); }
+.transport input[type=number] { width: 4.5rem; background: rgba(0,0,0,0.3); color: var(--text); border: 1px solid var(--edge); border-radius: 6px; }
+.vc-sessionStrip .vc-mount { overflow-x: auto; }
+.session-strip { min-width: 640px; display: flex; flex-direction: column; gap: 3px; }
+.ss-row { display: grid; grid-template-columns: 4rem 1fr; align-items: center; gap: 0.4rem; }
+.ss-label { font-size: 0.7rem; opacity: 0.8; }
+.ss-cell { height: 18px; margin: 1px; border: 1px solid rgba(140, 90, 255, 0.3); background: rgba(255,255,255,0.03); border-radius: 3px; padding: 0; cursor: pointer; }
+.ss-cell.on { background: var(--purple); }
+.ss-cell.playhead { outline: 1px solid var(--cyan); }
+.ss-lane { margin-left: 4.4rem; min-height: 26px; border: 1px dashed rgba(60,220,255,0.35); border-radius: 4px; cursor: copy; }
+.ss-clip { position: relative; background: rgba(60,220,255,0.25); border: 1px solid var(--cyan); border-radius: 4px; font-size: 0.65rem; padding: 0 6px; cursor: pointer; }
+.ss-edge { position: absolute; top: 0; bottom: 0; width: 5px; cursor: ew-resize; }
+.ss-edge-l { left: 0; } .ss-edge-r { right: 0; }
+.toast { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--edge); padding: 0.5rem 1rem; border-radius: 8px; z-index: 20; }

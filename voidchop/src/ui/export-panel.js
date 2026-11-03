@@ -9,7 +9,7 @@ const safe = (s) => String(s).replace(/[^\w.-]+/g, '_');
  * getKitBuffers(): { name, buffer }[] (optional) — exported as kit/<name>.wav.
  * getLoop(): Promise<AudioBuffer|null> (optional) — exported as voidchop-loop.wav.
  */
-export function mountExportPanel(el, { getSlices = () => [], getKitBuffers = () => [], getLoop = null, bitDepth = 24 } = {}) {
+export function mountExportPanel(el, { getSlices = () => [], getKitBuffers = () => [], getLoop = null, hasLoop = () => false, bitDepth = 24 } = {}) {
   el.innerHTML = `<div class="export-panel">
     <label>Bit depth <select data-role="depth"><option value="24">24-bit</option><option value="16">16-bit</option></select></label>
     <button data-role="export">Export WAV zip</button>
@@ -26,14 +26,14 @@ export function mountExportPanel(el, { getSlices = () => [], getKitBuffers = () 
   };
   const refresh = () => {
     const { slices, kit } = collect();
-    const empty = !slices.length && !kit.length;
+    const empty = !slices.length && !kit.length && !hasLoop();
     btn.disabled = empty;
     msg.textContent = empty ? 'Load a sample to export' : '';
   };
 
   btn.addEventListener('click', async () => {
     const { slices, kit } = collect();
-    if (!slices.length && !kit.length) return refresh();
+    if (!slices.length && !kit.length && !hasLoop()) return refresh();
     const opts = { sampleRate: 44100, bitDepth: Number(sel.value) };
     const files = slices.map((s, i) => {
       const b = s.startSec != null && s.endSec != null ? sliceBuffer(s.buffer, s.startSec, s.endSec) : s.buffer;
