@@ -36,4 +36,20 @@ describe('mountKeyboard', () => {
     cs.dispatchEvent(new Event('pointerup', { bubbles: true }));
     expect(moog.noteOff).toHaveBeenCalledWith(37);
   });
+
+  it('non-C startMidi (40 = E): black keys follow MIDI pitch class', () => {
+    const el = document.createElement('div');
+    mountKeyboard(el, { noteOn() {}, noteOff() {} }, { startMidi: 40, octaves: 1 });
+    const keys = [...el.querySelectorAll('[data-midi]')];
+    expect(keys.map((k) => +k.dataset.midi)).toEqual([40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51]);
+    const black = keys.filter((k) => k.classList.contains('black')).map((k) => +k.dataset.midi);
+    expect(black).toEqual([42, 44, 46, 49, 51]);
+    expect(el.querySelectorAll('.white')).toHaveLength(7);
+    // first key E is white; F# black sits after E,F (2 whites)
+    expect(keys[0].classList.contains('white')).toBe(true);
+    expect(el.querySelector('[data-midi="42"]').style.left).toMatch(/^2\d\.\d+%|^2[0-9.]*%/);
+  });
+  it('blackKeyPattern(1, 40) matches E-based pitch classes', () => {
+    expect(blackKeyPattern(1, 40).map((b, i) => (b ? 40 + i : -1)).filter((m) => m >= 0)).toEqual([42, 44, 46, 49, 51]);
+  });
 });

@@ -1,13 +1,13 @@
 // On-screen piano keyboard driving MoogSub. Real layout: black keys C# D# | F# G# A#.
 const BLACK_OFFSETS = new Set([1, 3, 6, 8, 10]);
 
-/** Boolean per semitone (from C) for `octaves` octaves: true = black key. */
-export function blackKeyPattern(octaves) {
-  return Array.from({ length: octaves * 12 }, (_, i) => BLACK_OFFSETS.has(i % 12));
+/** Boolean per semitone starting at `startMidi` (default C) for `octaves` octaves: true = black key. Uses absolute MIDI pitch class. */
+export function blackKeyPattern(octaves, startMidi = 0) {
+  return Array.from({ length: octaves * 12 }, (_, i) => BLACK_OFFSETS.has((startMidi + i) % 12));
 }
 
 export function mountKeyboard(el, moog, { startMidi = 36, octaves = 2 } = {}) {
-  const pattern = blackKeyPattern(octaves);
+  const pattern = blackKeyPattern(octaves, startMidi);
   const wrap = document.createElement('div');
   wrap.className = 'keyboard';
   wrap.style.cssText = 'position:relative;display:flex;height:120px;user-select:none;touch-action:none';
