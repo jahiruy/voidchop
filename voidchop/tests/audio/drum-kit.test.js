@@ -67,4 +67,29 @@ describe('DrumKit', () => {
     expect(kit.getBuffer('snare').tag).toBe(50);
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
   });
+  it('corrupt saved swaps are skipped, defaults kept, and pruned from storage', async () => {
+    const kit = new DrumKit();
+    await kit.loadDefaults();
+    await kit.swapPad('clap', ab(77));
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    saved.kick = '!!!not base64!!!';
+    saved.snare = btoa('\xff');
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+    const ctxDecode = FakeCtx.prototype.decodeAudioData;
+    FakeCtx.prototype.decodeAudioData = async function (buf) {
+      if (new Uint8Array(buf)[0] === 0xff) throw new Error('bad audio');
+      return ctxDecode.call(this, buf);
+    };
+    try {
+      const kit2 = new DrumKit();
+      await expect(kit2.loadDefaults()).resolves.toBeUndefined();
+      expect(kit2.getBuffer('kick').tag).toBe(1);
+      expect(kit2.getBuffer('snare').tag).toBe(2);
+      expect(kit2.getBuffer('clap').tag).toBe(77);
+      const after = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      expect(Object.keys(after)).toEqual(['clap']);
+    } finally {
+      FakeCtx.prototype.decodeAudioData = ctxDecode;
+    }
+  });
 });

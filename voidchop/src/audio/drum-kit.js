@@ -37,12 +37,19 @@ export class DrumKit {
     }));
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { saved = {}; }
+    let dropped = false;
     for (const pad of PADS) {
       if (typeof saved[pad] !== 'string') continue;
-      const raw = fromBase64(saved[pad]);
-      this.swaps[pad] = raw;
-      this.buffers[pad] = await decodeSample(raw);
+      try {
+        const raw = fromBase64(saved[pad]);
+        const buffer = await decodeSample(raw);
+        this.swaps[pad] = raw;
+        this.buffers[pad] = buffer;
+      } catch {
+        dropped = true; // corrupt swap: keep default buffer
+      }
     }
+    if (dropped) this._persist();
   }
 
   trigger(pad) {
