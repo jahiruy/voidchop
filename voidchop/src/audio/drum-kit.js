@@ -53,15 +53,17 @@ export class DrumKit {
     if (dropped) this._persist();
   }
 
-  trigger(pad) {
+  trigger(pad, when, out) {
     assertPad(pad);
     const buffer = this.buffers[pad];
     if (!buffer) return;
-    const ctx = getAudioContext();
+    const ctx = out?.ctx || getAudioContext();
+    const destination = out?.destination || ctx.destination;
+    const t = when == null ? ctx.currentTime : when;
     const src = ctx.createBufferSource();
     src.buffer = buffer;
-    src.connect(ctx.destination);
-    src.start();
+    src.connect(destination);
+    src.start(t);
   }
 
   async swapPad(pad, arrayBuffer) {

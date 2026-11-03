@@ -107,4 +107,19 @@ describe('DrumKit', () => {
     expect(kit.getBuffer('cymbal').tag).toBe(4);
   });
 
+  it('trigger accepts when and optional out destination', async () => {
+    const kit = new DrumKit();
+    await kit.loadDefaults();
+    const dest = {};
+    const starts = [];
+    const fakeCtx = {
+      currentTime: 10,
+      destination: dest,
+      createBufferSource() {
+        return { buffer: null, connect: vi.fn(), start: vi.fn((when) => starts.push(when)) };
+      },
+    };
+    kit.trigger('kick', 12, { ctx: fakeCtx, destination: dest });
+    expect(starts[0]).toBe(12);
+  });
 });
