@@ -3,6 +3,7 @@ import { mountDropZone } from './ui/drop-zone.js';
 import { mountWaveform } from './ui/waveform-view.js';
 import { mountDrumPads } from './ui/drum-pads.js';
 import { mountKeyboard } from './ui/keyboard.js';
+import { bounceLoop, patternHasContent } from './audio/loop-bounce.js';
 import { mountExportPanel } from './ui/export-panel.js';
 import { getAudioContext, unlockAudio } from './audio/context.js';
 import { decodeSample } from './audio/sample-buffer.js';
@@ -45,6 +46,12 @@ export function bootApp(root) {
   const exportPanel = mountExportPanel(refs.export, {
     getSlices: () => buildSlices(state.buffer, state.markers),
     getKitBuffers: () => PADS.map((name) => ({ name, buffer: kit.getBuffer(name) })).filter((p) => p.buffer),
+    getLoop: async () => {
+      const p = state.pattern;
+      if (!patternHasContent(p)) return null;
+      try { return await bounceLoop({ state: p, kit, getBuffer: (id) => state.vocalBuffers?.[id] || null }); }
+      catch (e) { console.error('VOIDCHOP: loop bounce failed', e); return null; }
+    },
   });
   const refresh = () => exportPanel?.refresh?.();
 

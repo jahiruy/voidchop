@@ -7,8 +7,9 @@ const safe = (s) => String(s).replace(/[^\w.-]+/g, '_');
 /**
  * getSlices(): { buffer, startSec?, endSec? }[] — if startSec/endSec given, buffer is sliced.
  * getKitBuffers(): { name, buffer }[] (optional) — exported as kit/<name>.wav.
+ * getLoop(): Promise<AudioBuffer|null> (optional) — exported as voidchop-loop.wav.
  */
-export function mountExportPanel(el, { getSlices = () => [], getKitBuffers = () => [], bitDepth = 24 } = {}) {
+export function mountExportPanel(el, { getSlices = () => [], getKitBuffers = () => [], getLoop = null, bitDepth = 24 } = {}) {
   el.innerHTML = `<div class="export-panel">
     <label>Bit depth <select data-role="depth"><option value="24">24-bit</option><option value="16">16-bit</option></select></label>
     <button data-role="export">Export WAV zip</button>
@@ -41,6 +42,8 @@ export function mountExportPanel(el, { getSlices = () => [], getKitBuffers = () 
     kit.forEach((k, i) => files.push({ name: `kit/${safe(k.name || `pad_${pad(i + 1)}`)}.wav`, data: audioBufferToWav(k.buffer, opts) }));
     btn.disabled = true; msg.textContent = 'Exporting…';
     try {
+      const loop = getLoop ? await getLoop() : null;
+      if (loop) files.push({ name: 'voidchop-loop.wav', data: audioBufferToWav(loop, opts) });
       const blob = await buildExportZip(files);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
