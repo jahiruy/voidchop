@@ -37,4 +37,26 @@ describe('session strip', () => {
     el.querySelector('.ss-lane').dispatchEvent(new MouseEvent('click', { clientX: 100, bubbles: true }));
     expect(state.vocals[0].startStep).toBe(10);
   });
+  it('right-edge drag survives re-render; single undo; no trailing select', () => {
+    let selected = null;
+    el = document.createElement('div');
+    state = addClip(createPatternState(), { bufferId: 'b', startStep: 4, lengthSteps: 2, slice: { in: 0, out: 1 } });
+    mountSessionStrip(el, { getState: () => state, setState: (s) => { state = s; }, onSelectClip: (id) => { selected = id; } });
+    el.querySelector('.ss-lane').getBoundingClientRect = () => ({ left: 0, width: 320 });
+    const before = state;
+    el.querySelector('.ss-edge-r').dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 85 }));
+    expect(state.vocals[0].lengthSteps).toBe(5);
+    const afterFirst = state._undo;
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 125 }));
+    expect(state.vocals[0].lengthSteps).toBe(9);
+    expect(state.vocals[0].startStep).toBe(4);
+    expect(state._undo).toBe(afterFirst);
+    expect(state._undo.vocals[0].lengthSteps).toBe(before.vocals[0].lengthSteps);
+    window.dispatchEvent(new MouseEvent('pointerup'));
+    el.querySelector('.ss-clip').click();
+    expect(selected).toBeNull();
+    el.querySelector('.ss-clip').click();
+    expect(selected).toBe(state.vocals[0].id);
+  });
 });

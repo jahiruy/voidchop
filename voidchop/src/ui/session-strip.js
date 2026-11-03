@@ -5,8 +5,9 @@ const LABELS = { kick: 'Kick', snare: 'Snare', clap: 'Clap', cymbal: 'Cymbal' };
 const cols = `grid-template-columns: repeat(${TOTAL_STEPS}, 1fr)`;
 
 export function mountSessionStrip(el, { getState, setState, getCurrentStep = () => -1, onSelectClip } = {}) {
-  const stepAt = (lane, clientX) => {
-    const r = lane.getBoundingClientRect();
+  let suppressClick = false;
+  const stepAt = (lane, clientX, rect) => {
+    const r = rect || lane.getBoundingClientRect();
     const w = r.width || 1;
     return Math.max(0, Math.min(TOTAL_STEPS - 1, Math.floor(((clientX - r.left) / w) * TOTAL_STEPS)));
   };
@@ -51,15 +52,17 @@ export function mountSessionStrip(el, { getState, setState, getCurrentStep = () 
       b.dataset.start = String(clip.startStep); b.dataset.length = String(clip.lengthSteps);
       b.style.gridColumn = `${clip.startStep + 1} / span ${clip.lengthSteps}`;
       b.textContent = `${clip.startStep + 1}·${clip.lengthSteps}`;
-      b.addEventListener('click', () => onSelectClip?.(clip.id));
+      b.addEventListener('click', () => { if (suppressClick) { suppressClick = false; return; } onSelectClip?.(clip.id); });
       for (const edge of ['l', 'r']) {
         const h = document.createElement('span');
         h.className = `ss-edge ss-edge-${edge}`;
         h.addEventListener('pointerdown', (e) => {
           e.stopPropagation();
           let snapped = false;
+          // Cache rect at pointerdown: render() rebuilds DOM, detaching `lane`.
+          const rect = lane.getBoundingClientRect();
           const move = (ev) => {
-            const st = stepAt(lane, ev.clientX);
+            const st = stepAt(lane, ev.clientX, rect);
             const c = getState().vocals.find((v) => v.id === clip.id); if (!c) return;
             const end = c.startStep + c.lengthSteps;
             const patch = edge === 'r'
@@ -68,7 +71,7 @@ export function mountSessionStrip(el, { getState, setState, getCurrentStep = () 
             const base = snapped ? getState() : pushUndo(getState()); snapped = true;
             setState(updateClip(base, clip.id, patch)); render();
           };
-          const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+          const up = () => { if (snapped) { suppressClick = true; setTimeout(() => { suppressClick = false; }, 0); } window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
           window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
         });
         b.appendChild(h);
