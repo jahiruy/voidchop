@@ -6,9 +6,9 @@ const HIT_PX = 6;
 /**
  * Mount waveform chop view.
  * @param {HTMLElement} el
- * @param {{ onMarkersChange?: (m: number[]) => void }} opts
+ * @param {{ onMarkersChange?: (m: number[]) => void, onWarpChange?: (clip: object, wm: {bufferTime:number,timelineBeat:number}[]) => void }} opts
  */
-export function mountWaveform(el, { onMarkersChange } = {}) {
+export function mountWaveform(el, { onMarkersChange, onWarpChange } = {}) {
   const canvas = document.createElement('canvas');
   canvas.className = 'vc-wave';
   canvas.width = 800;
@@ -22,6 +22,9 @@ export function mountWaveform(el, { onMarkersChange } = {}) {
   let buffer = null;
   let markers = [0];
   let drag = -1;
+  let clip = null;
+  let warp = [];
+  let wdrag = -1;
   const dur = () => (buffer ? buffer.duration || buffer.length / buffer.sampleRate : 0);
   const emit = () => onMarkersChange?.(markers.slice());
 
@@ -52,8 +55,17 @@ export function mountWaveform(el, { onMarkersChange } = {}) {
       ctx.lineTo(x + 0.5, ((1 - lo) * h) / 2);
     }
     ctx.stroke();
-    ctx.strokeStyle = '#ff2bd6';
     const d = dur();
+    if (clip) {
+      ctx.strokeStyle = '#ffd400';
+      for (const m of warp) {
+        const x = (m.bufferTime / d) * w;
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x - 5, 0); ctx.lineTo(x + 5, 0); ctx.lineTo(x, 8); ctx.lineTo(x - 5, 0); ctx.stroke();
+      }
+      return;
+    }
+    ctx.strokeStyle = '#ff2bd6';
     for (const t of markers) {
       const x = (t / d) * w;
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
@@ -70,18 +82,33 @@ export function mountWaveform(el, { onMarkersChange } = {}) {
   canvas.addEventListener('pointerdown', (e) => {
     if (!buffer) return;
     const t = toTime(e);
+    if (clip) {
+      let wb = -1, wd = Infinity;
+      warp.forEach((m, i) => { const dd = Math.abs(m.bufferTime - t) * pxPerSec(); if (dd < wd) { wd = dd; wb = i; } });
+      if (wb >= 0 && wd <= HIT_PX) { wdrag = wb; canvas.setPointerCapture?.(e.pointerId); }
+      return;
+    }
     let best = -1, bd = Infinity;
     markers.forEach((m, i) => { const dd = Math.abs(m - t) * pxPerSec(); if (i > 0 && dd < bd) { bd = dd; best = i; } });
     if (best > 0 && bd <= HIT_PX) { drag = best; canvas.setPointerCapture?.(e.pointerId); }
   });
   canvas.addEventListener('pointermove', (e) => {
+    if (wdrag >= 0) {
+      const lo = wdrag > 0 ? warp[wdrag - 1].bufferTime + MIN_GAP : 0;
+      const hi = wdrag + 1 < warp.length ? warp[wdrag + 1].bufferTime - MIN_GAP : dur();
+      warp[wdrag] = { ...warp[wdrag], bufferTime: Math.min(hi, Math.max(lo, toTime(e))) };
+      draw();
+      return;
+    }
     if (drag < 1) return;
     const prev = markers[drag - 1] + MIN_GAP;
     const next = drag + 1 < markers.length ? markers[drag + 1] - MIN_GAP : dur();
     markers[drag] = Math.min(next, Math.max(prev, toTime(e)));
     draw();
   });
-  const end = () => { if (drag > 0) { drag = -1; emit(); } };
+  const end = () => {
+    if (wdrag >= 0) { wdrag = -1; clip.warpMarkers = warp.map((m) => ({ ...m })); onWarpChange?.(clip, warp.map((m) => ({ ...m }))); return; }
+    if (drag > 0) { drag = -1; emit(); } };
   canvas.addEventListener('pointerup', end);
   canvas.addEventListener('pointercancel', end);
 
@@ -100,5 +127,14 @@ export function mountWaveform(el, { onMarkersChange } = {}) {
     },
     setMarkers(list) { markers = normalize(list || []); draw(); },
     getMarkers: () => markers.slice(),
+    /** Select a vocal clip (or null) to show its warp markers instead of transients. */
+    setClip(c, b) {
+      clip = c || null;
+      if (b !== undefined) buffer = b;
+      warp = clip ? (clip.warpMarkers || []).map((m) => ({ ...m })).sort((a, z) => a.bufferTime - z.bufferTime) : [];
+      wdrag = -1;
+      draw();
+    },
+    getWarpMarkers: () => warp.map((m) => ({ ...m })),
   };
 }
