@@ -1,0 +1,9 @@
+.playwright-mcp/
+.venv-ytdlp/
+.wv/
+node_modules/
+dist/
+*.log
+.DS_Store
+agent-tools/
+.superpowers/
