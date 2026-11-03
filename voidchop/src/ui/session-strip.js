@@ -4,7 +4,7 @@ import { PADS } from '../audio/drum-kit.js';
 const LABELS = { kick: 'Kick', snare: 'Snare', clap: 'Clap', cymbal: 'Cymbal' };
 const cols = `grid-template-columns: repeat(${TOTAL_STEPS}, 1fr)`;
 
-export function mountSessionStrip(el, { getState, setState, getCurrentStep = () => -1, onSelectClip } = {}) {
+export function mountSessionStrip(el, { getState, setState, getCurrentStep = () => -1, onSelectClip, takePendingChop = () => null } = {}) {
   let suppressClick = false;
   const stepAt = (lane, clientX, rect) => {
     const r = rect || lane.getBoundingClientRect();
@@ -38,7 +38,7 @@ export function mountSessionStrip(el, { getState, setState, getCurrentStep = () 
     lane.className = 'ss-lane'; lane.style.cssText = `display:grid;${cols};position:relative`;
     lane.addEventListener('click', (e) => {
       if (e.target !== lane) return;
-      const chop = window.__voidchopPendingChop;
+      const chop = takePendingChop();
       if (!chop || !chop.slice) return;
       setState(addClip(pushUndo(getState()), {
         bufferId: chop.bufferId, slice: chop.slice, lengthSteps: chop.lengthSteps || 2,
@@ -80,6 +80,11 @@ export function mountSessionStrip(el, { getState, setState, getCurrentStep = () 
     }
     el.appendChild(lane);
   }
+  /** Toggle .playhead on existing cells only — no DOM rebuild (keeps edge drags alive). */
+  function updatePlayhead() {
+    const cur = String(getCurrentStep());
+    for (const c of el.querySelectorAll('.ss-cell')) c.classList.toggle('playhead', c.dataset.step === cur);
+  }
   render();
-  return { render };
+  return { render, updatePlayhead };
 }

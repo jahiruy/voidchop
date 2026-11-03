@@ -5,10 +5,11 @@ import { createPatternState, addClip, TOTAL_STEPS } from '../../src/audio/patter
 import { PADS } from '../../src/audio/drum-kit.js';
 
 describe('session strip', () => {
-  let el, state, api;
+  let el, state, api, pending, cur;
   beforeEach(() => {
-    el = document.createElement('div'); state = createPatternState(); delete window.__voidchopPendingChop;
-    api = mountSessionStrip(el, { getState: () => state, setState: (s) => { state = s; }, getCurrentStep: () => 3 });
+    el = document.createElement('div'); state = createPatternState(); pending = null; cur = 3;
+    api = mountSessionStrip(el, { getState: () => state, setState: (s) => { state = s; }, getCurrentStep: () => cur,
+      takePendingChop: () => { const c = pending; pending = null; return c; } });
   });
   it('renders 4 pad rows x 32 columns', () => {
     for (const p of PADS) expect(el.querySelectorAll(`[data-pad="${p}"][data-step]`)).toHaveLength(TOTAL_STEPS);
@@ -32,10 +33,24 @@ describe('session strip', () => {
     lane.getBoundingClientRect = () => ({ left: 0, width: 320 });
     lane.dispatchEvent(new MouseEvent('click', { clientX: 100, bubbles: true }));
     expect(state.vocals).toHaveLength(0);
-    window.__voidchopPendingChop = { bufferId: 'b', slice: { in: 0, out: 0.5 }, lengthSteps: 2 };
+    pending = { bufferId: 'b', slice: { in: 0, out: 0.5 }, lengthSteps: 2 };
     el.querySelector('.ss-lane').getBoundingClientRect = () => ({ left: 0, width: 320 });
     el.querySelector('.ss-lane').dispatchEvent(new MouseEvent('click', { clientX: 100, bubbles: true }));
     expect(state.vocals[0].startStep).toBe(10);
+    expect(state._undo.vocals).toHaveLength(0);
+    expect(pending).toBeNull();
+    const l2 = el.querySelector('.ss-lane');
+    l2.getBoundingClientRect = () => ({ left: 0, width: 320 });
+    l2.dispatchEvent(new MouseEvent('click', { clientX: 200, bubbles: true }));
+    expect(state.vocals).toHaveLength(1);
+  });
+  it('updatePlayhead moves .playhead without rebuilding DOM', () => {
+    const cell = el.querySelector('[data-pad="kick"][data-step="3"]');
+    cur = 7; api.updatePlayhead();
+    expect(el.querySelector('[data-pad="kick"][data-step="3"]')).toBe(cell);
+    expect(cell.classList.contains('playhead')).toBe(false);
+    expect(el.querySelectorAll('.ss-cell.playhead')).toHaveLength(PADS.length);
+    expect(el.querySelector('[data-pad="kick"][data-step="7"]').classList.contains('playhead')).toBe(true);
   });
   it('right-edge drag survives re-render; single undo; no trailing select', () => {
     let selected = null;

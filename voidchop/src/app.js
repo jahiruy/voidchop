@@ -14,6 +14,7 @@ import { createClock } from './audio/clock.js';
 import { createScheduler } from './audio/scheduler.js';
 import { mountTransport } from './ui/transport.js';
 import { mountSessionStrip } from './ui/session-strip.js';
+import { showToast } from './ui/toast.js';
 
 /** Build slice descriptors from a buffer and sorted marker times. */
 export function buildSlices(buffer, markers) {
@@ -47,6 +48,7 @@ export function bootApp(root) {
   chopHint.hidden = true;
   const state = { buffer: null, markers: [0], pattern: createPatternState(), vocalBuffers: {}, bufferId: null, selectedClipId: null };
   let bufSeq = 0;
+  let pendingChop = null;
 
   const kit = new DrumKit();
   const exportPanel = mountExportPanel(refs.export, {
@@ -57,7 +59,7 @@ export function bootApp(root) {
       const p = state.pattern;
       if (!patternHasContent(p)) return null;
       try { return await bounceLoop({ state: p, kit, getBuffer: (id) => state.vocalBuffers?.[id] || null }); }
-      catch (e) { console.error('VOIDCHOP: loop bounce failed', e); return null; }
+      catch (e) { console.error('VOIDCHOP: loop bounce failed', e); showToast(root, 'Loop export failed — try again.'); return null; }
     },
   });
   const refresh = () => exportPanel?.refresh?.();
@@ -88,7 +90,7 @@ export function bootApp(root) {
     const sl = buildSlices(state.buffer, state.markers).map((x) => ({ in: x.startSec ?? 0, out: x.endSec ?? d }));
     const hit = sl.find((x) => t >= x.in && t < x.out) || sl[sl.length - 1];
     if (!hit) return;
-    window.__voidchopPendingChop = { bufferId: state.bufferId, slice: hit, lengthSteps: 2 };
+    pendingChop = { bufferId: state.bufferId, slice: hit, lengthSteps: 2 };
   });
 
   const drop = mountDropZone(refs.drop, {
@@ -105,13 +107,14 @@ export function bootApp(root) {
         refresh();
       } catch (err) {
         console.error('VOIDCHOP: failed to load sample', err);
+        showToast(root, `Couldn't load that sample.`);
         drop.setMessage(`Couldn't read that file — try another or drop it again.`);
       }
     },
   });
 
   kit.loadDefaults()
-    .catch((err) => console.error('VOIDCHOP: kit load failed', err))
+    .catch((err) => { console.error('VOIDCHOP: kit load failed', err); showToast(root, 'Drum kit failed to load.'); })
     .finally(() => { mountDrumPads(refs.pads, kit); refresh(); });
 
   const moog = new MoogSub(getAudioContext());
@@ -146,6 +149,7 @@ export function bootApp(root) {
     getState: () => state.pattern,
     setState: (s) => { state.pattern = s; refresh(); },
     getCurrentStep: curStep,
+    takePendingChop: () => { const c = pendingChop; pendingChop = null; return c; },
     onSelectClip: (id) => {
       const c = state.pattern.vocals.find((v) => v.id === id);
       if (!c) return;
@@ -196,7 +200,7 @@ export function bootApp(root) {
     rootStyle.setProperty('--vc-phase', String(playing ? beats - Math.floor(beats) : 0));
     rootStyle.setProperty('--vc-playing', playing ? '1' : '0');
     const s = curStep();
-    if (s !== lastStep) { lastStep = s; transport.refresh(); strip.render(); }
+    if (s !== lastStep) { lastStep = s; transport.refresh(); strip.updatePlayhead(); }
     raf = requestAnimationFrame(frame);
   }
   if (typeof requestAnimationFrame === 'function') raf = requestAnimationFrame(frame);

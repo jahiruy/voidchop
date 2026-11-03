@@ -42,4 +42,29 @@ describe('bootApp sequencer wiring', () => {
     app.frame();
     expect(document.documentElement.style.getPropertyValue('--vc-playing')).toBe('0');
   });
+  it('waveform click arms chop; lane click places it once (no window global)', () => {
+    app.state.buffer = { duration: 1, length: 44100, sampleRate: 44100 };
+    app.state.bufferId = 'b1';
+    const cv = app.waveform.canvas;
+    cv.getBoundingClientRect = () => ({ left: 0, width: 100 });
+    cv.dispatchEvent(new MouseEvent('pointerdown', { clientX: 10, bubbles: true }));
+    cv.dispatchEvent(new MouseEvent('click', { clientX: 10, bubbles: true }));
+    expect(window.__voidchopPendingChop).toBeUndefined();
+    const lane = root.querySelector('.ss-lane');
+    lane.getBoundingClientRect = () => ({ left: 0, width: 320 });
+    lane.dispatchEvent(new MouseEvent('click', { clientX: 100, bubbles: true }));
+    expect(app.state.pattern.vocals).toHaveLength(1);
+    expect(app.state.pattern.vocals[0]).toMatchObject({ bufferId: 'b1', startStep: 10 });
+    const lane2 = root.querySelector('.ss-lane');
+    lane2.getBoundingClientRect = () => ({ left: 0, width: 320 });
+    lane2.dispatchEvent(new MouseEvent('click', { clientX: 200, bubbles: true }));
+    expect(app.state.pattern.vocals).toHaveLength(1);
+  });
+  it('frame step changes update playhead without rebuilding strip DOM', () => {
+    const cell = root.querySelector('[data-pad="kick"][data-step="0"]');
+    root.querySelector('[data-role=play]').click();
+    app.frame();
+    expect(root.querySelector('[data-pad="kick"][data-step="0"]')).toBe(cell);
+    expect(cell.classList.contains('playhead')).toBe(true);
+  });
 });
